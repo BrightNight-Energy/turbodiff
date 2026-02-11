@@ -276,15 +276,13 @@ fn diff_values(
                 if list1.len() > list2.len() {
                     for (idx, item) in list1.iter().enumerate().skip(min_len) {
                         let child_path = format!("{}[{}]", path, idx);
-                        acc.iterable_item_removed
-                            .insert(child_path, item.clone());
+                        acc.iterable_item_removed.insert(child_path, item.clone());
                     }
                 }
                 if list2.len() > list1.len() {
                     for (idx, item) in list2.iter().enumerate().skip(min_len) {
                         let child_path = format!("{}[{}]", path, idx);
-                        acc.iterable_item_added
-                            .insert(child_path, item.clone());
+                        acc.iterable_item_added.insert(child_path, item.clone());
                     }
                 }
             }
@@ -341,7 +339,6 @@ fn diff_arrays_ignore_order(
             }
         }
     }
-
 }
 
 fn values_equal(t1: &Value, t2: &Value, options: &DeepDiffOptions) -> bool {
