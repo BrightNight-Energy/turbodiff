@@ -274,17 +274,17 @@ fn diff_values(
                     diff_values(&list1[idx], &list2[idx], &child_path, options, acc);
                 }
                 if list1.len() > list2.len() {
-                    for idx in min_len..list1.len() {
+                    for (idx, item) in list1.iter().enumerate().skip(min_len) {
                         let child_path = format!("{}[{}]", path, idx);
                         acc.iterable_item_removed
-                            .insert(child_path, list1[idx].clone());
+                            .insert(child_path, item.clone());
                     }
                 }
                 if list2.len() > list1.len() {
-                    for idx in min_len..list2.len() {
+                    for (idx, item) in list2.iter().enumerate().skip(min_len) {
                         let child_path = format!("{}[{}]", path, idx);
                         acc.iterable_item_added
-                            .insert(child_path, list2[idx].clone());
+                            .insert(child_path, item.clone());
                     }
                 }
             }
@@ -342,9 +342,6 @@ fn diff_arrays_ignore_order(
         }
     }
 
-    if !acc.iterable_item_added.is_empty() || !acc.iterable_item_removed.is_empty() {
-        return;
-    }
 }
 
 fn values_equal(t1: &Value, t2: &Value, options: &DeepDiffOptions) -> bool {
@@ -411,13 +408,13 @@ fn round_significant(value: f64, digits: u32) -> f64 {
 }
 
 fn types_compatible(t1: &Value, t2: &Value) -> bool {
-    match (t1, t2) {
-        (Value::Number(_), Value::Number(_)) => true,
-        (Value::String(_), Value::String(_)) => true,
-        (Value::Bool(_), Value::Bool(_)) => true,
-        (Value::Null, Value::Null) => true,
-        _ => false,
-    }
+    matches!(
+        (t1, t2),
+        (Value::Number(_), Value::Number(_))
+            | (Value::String(_), Value::String(_))
+            | (Value::Bool(_), Value::Bool(_))
+            | (Value::Null, Value::Null)
+    )
 }
 
 fn type_name(value: &Value) -> &'static str {
