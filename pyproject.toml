@@ -1,6 +1,6 @@
 [project]
 name = "turbodiff"
-version = "0.1.0"
+version = "1.0.0"
 description = "Rust-powered DeepDiff core"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -10,7 +10,7 @@ requires = ["maturin>=1.4,<2.0"]
 build-backend = "maturin"
 
 [project.urls]
-Repository = "https://github.com/seperman/deepdiff"
+Repository = "https://github.com/BrightNight-Energy/turbodiff"
 
 [tool.maturin]
 features = ["python"]
