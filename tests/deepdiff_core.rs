@@ -1,5 +1,5 @@
-use turbodiff::{DeepDiff, DeepDiffOptions};
 use serde_json::json;
+use turbodiff::{DeepDiff, DeepDiffOptions};
 
 #[test]
 fn values_changed_basic() {
@@ -64,7 +64,11 @@ fn type_changes_basic() {
 fn ignore_numeric_type_changes() {
     let t1 = json!({"a": 1});
     let t2 = json!({"a": 1.0});
-    let diff = DeepDiff::with_options(t1, t2, DeepDiffOptions::default().ignore_numeric_type_changes(true));
+    let diff = DeepDiff::with_options(
+        t1,
+        t2,
+        DeepDiffOptions::default().ignore_numeric_type_changes(true),
+    );
     assert_eq!(diff.to_value(), json!({}));
 }
 
@@ -72,7 +76,11 @@ fn ignore_numeric_type_changes() {
 fn ignore_string_type_changes() {
     let t1 = json!({"a": "1"});
     let t2 = json!({"a": "1".to_string()});
-    let diff = DeepDiff::with_options(t1, t2, DeepDiffOptions::default().ignore_string_type_changes(true));
+    let diff = DeepDiff::with_options(
+        t1,
+        t2,
+        DeepDiffOptions::default().ignore_string_type_changes(true),
+    );
     assert_eq!(diff.to_value(), json!({}));
 }
 
@@ -88,7 +96,11 @@ fn ignore_order_for_lists() {
 fn significant_digits_suppresses_small_changes() {
     let t1 = json!(1.1234);
     let t2 = json!(1.1235);
-    let diff = DeepDiff::with_options(t1, t2, DeepDiffOptions::default().significant_digits(Some(3)));
+    let diff = DeepDiff::with_options(
+        t1,
+        t2,
+        DeepDiffOptions::default().significant_digits(Some(3)),
+    );
     assert_eq!(diff.to_value(), json!({}));
 }
 

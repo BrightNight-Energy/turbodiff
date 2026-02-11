@@ -60,7 +60,7 @@ jobs:
           pytest
 
   release:
-    if: github.ref == 'refs/heads/main'
+    if: github.event.ref == 'refs/heads/main'
     needs: test
     runs-on: ubuntu-latest
     permissions:
