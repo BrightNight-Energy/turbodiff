@@ -1,4 +1,6 @@
+import numpy as np
 import pytest
+
 from turbodiff import DeepDiff
 
 
@@ -42,9 +44,19 @@ def test_python_significant_digits():
     diff = DeepDiff(1.1234, 1.1235, significant_digits=3)
     assert diff.to_dict() == {}
 
+    diff = DeepDiff(0, 7e-7, significant_digits=1)
+    assert diff.to_dict() == {}
+
 
 def test_python_math_epsilon():
     diff = DeepDiff(1.0, 1.0005, math_epsilon=0.001)
+    assert diff.to_dict() == {}
+
+
+def test_python_atol_rtol():
+    diff = DeepDiff(1.0, 1.0005, atol=0.001)
+    assert diff.to_dict() == {}
+    diff = DeepDiff(1000.0, 1000.1, rtol=1e-3)
     assert diff.to_dict() == {}
 
 
@@ -69,6 +81,34 @@ def test_python_exclude_paths():
 def test_python_unknown_param():
     with pytest.raises(ValueError):
         DeepDiff(1, 2, wrong_param=True)
+
+
+def test_python_ignore_type_in_groups_bool_str():
+    diff = DeepDiff(True, "Yes", ignore_type_in_groups=[(bool, str)])
+    assert diff.to_dict() == {
+        "values_changed": {"root": {"old_value": True, "new_value": "Yes"}}
+    }
+
+
+def test_python_ignore_type_in_groups_numbers():
+    diff = DeepDiff(10, 10.0, ignore_type_in_groups=[(int, float)])
+    assert diff.to_dict() == {}
+
+
+def test_python_ignore_type_in_groups_numpy():
+    diff = DeepDiff(10, np.float64(10), ignore_type_in_groups=[(int, np.float64)])
+    assert diff.to_dict() == {}
+
+    diff = DeepDiff([10, 5], np.array([10, 5]), ignore_type_in_groups=[(int, np.array)])
+    assert diff.to_dict() == {}
+
+    diff = DeepDiff([10, 5], np.array([10, 5.6]))
+    assert diff.to_dict() == {
+        "values_changed": {
+            "root[0]": {"new_value": 10.0, "old_value": 10},
+            "root[1]": {"new_value": 5.6, "old_value": 5},
+        }
+    }
 
 
 def test_empty_diff_is_falsy():
