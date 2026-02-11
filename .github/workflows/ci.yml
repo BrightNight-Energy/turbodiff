@@ -42,7 +42,9 @@ jobs:
         run: cargo test
 
       - name: Build Python extension
-        run: maturin develop --features python
+        run: |
+          source .venv/bin/activate
+          maturin develop --features python
 
       - name: Python lint (ruff)
         run: |
