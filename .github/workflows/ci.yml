@@ -73,7 +73,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Fetch all history so semantic-release can resolve commits
-          token: ${{ secrets.CICD_RELEASE_GITHUB_TOKEN }}
 
       - uses: 1password/load-secrets-action/configure@v2
         with:
