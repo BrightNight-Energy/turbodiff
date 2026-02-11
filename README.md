@@ -11,6 +11,8 @@ Turbodiff is a super fast diffing library built from the ground up in Rust for
 speed and consistency. It focuses on core diffing behavior and exposes both a
 Rust API and Python bindings.
 
+<img align="center" alt="turbodiff speed" src=".github/assets/turbodiff-speed-comparison.png" /><br/><br/>
+
 ## Credits
 
 This project is inspired by and compatible with the design of 
