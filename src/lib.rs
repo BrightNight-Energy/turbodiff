@@ -7,7 +7,7 @@ use pyo3::exceptions::{PyTypeError, PyValueError};
 #[cfg(feature = "python")]
 use pyo3::prelude::*;
 #[cfg(feature = "python")]
-use pyo3::types::{PyAny, PyDict, PyList, PyTuple};
+use pyo3::types::{PyAny, PyBytes, PyDict, PyList, PyTuple, PyType};
 
 #[derive(Clone, Debug)]
 pub struct DeepDiffOptions {
@@ -16,9 +16,12 @@ pub struct DeepDiffOptions {
     ignore_string_type_changes: bool,
     significant_digits: Option<u32>,
     math_epsilon: Option<f64>,
+    atol: Option<f64>,
+    rtol: Option<f64>,
     include_paths: Vec<String>,
     exclude_paths: Vec<String>,
     verbose_level: u8,
+    ignore_type_in_groups: Vec<Vec<ValueType>>,
 }
 
 impl Default for DeepDiffOptions {
@@ -29,9 +32,12 @@ impl Default for DeepDiffOptions {
             ignore_string_type_changes: false,
             significant_digits: None,
             math_epsilon: None,
+            atol: None,
+            rtol: None,
             include_paths: Vec::new(),
             exclude_paths: Vec::new(),
             verbose_level: 1,
+            ignore_type_in_groups: Vec::new(),
         }
     }
 }
@@ -62,6 +68,16 @@ impl DeepDiffOptions {
         self
     }
 
+    pub fn atol(mut self, value: Option<f64>) -> Self {
+        self.atol = value;
+        self
+    }
+
+    pub fn rtol(mut self, value: Option<f64>) -> Self {
+        self.rtol = value;
+        self
+    }
+
     pub fn include_paths(mut self, paths: Vec<String>) -> Self {
         self.include_paths = paths;
         self
@@ -76,6 +92,16 @@ impl DeepDiffOptions {
         self.verbose_level = value;
         self
     }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+enum ValueType {
+    Number,
+    String,
+    Bool,
+    Null,
+    Array,
+    Object,
 }
 
 #[derive(Clone, Debug)]
@@ -288,7 +314,7 @@ fn diff_values(
             }
         }
         _ => {
-            if types_compatible(t1, t2) {
+            if types_compatible(t1, t2, options) {
                 acc.values_changed
                     .insert(path.to_string(), json_obj(old_new_value(t1, t2)));
             } else {
@@ -379,12 +405,19 @@ fn numbers_equal(
         if options.ignore_numeric_type_changes && (a - b).abs() <= f64::EPSILON {
             return true;
         }
-        if let Some(eps) = options.math_epsilon {
-            if (a - b).abs() <= eps {
+        let atol = options.atol.or(options.math_epsilon).unwrap_or(0.0);
+        let rtol = options.rtol.unwrap_or(0.0);
+        if atol > 0.0 || rtol > 0.0 {
+            let tol = atol.max(rtol * a.abs().max(b.abs()));
+            if (a - b).abs() <= tol {
                 return true;
             }
         }
         if let Some(sig) = options.significant_digits {
+            if a == 0.0 || b == 0.0 {
+                let threshold = 10f64.powi(-(sig as i32));
+                return (a - b).abs() <= threshold;
+            }
             let ra = round_significant(a, sig);
             let rb = round_significant(b, sig);
             return (ra - rb).abs() <= f64::EPSILON;
@@ -404,14 +437,39 @@ fn round_significant(value: f64, digits: u32) -> f64 {
     (value * scale).round() / scale
 }
 
-fn types_compatible(t1: &Value, t2: &Value) -> bool {
-    matches!(
+fn types_compatible(t1: &Value, t2: &Value, options: &DeepDiffOptions) -> bool {
+    if matches!(
         (t1, t2),
         (Value::Number(_), Value::Number(_))
             | (Value::String(_), Value::String(_))
             | (Value::Bool(_), Value::Bool(_))
             | (Value::Null, Value::Null)
-    )
+    ) {
+        return true;
+    }
+    if options.ignore_type_in_groups.is_empty() {
+        return false;
+    }
+    let vt1 = value_type(t1);
+    let vt2 = value_type(t2);
+    if vt1 == vt2 {
+        return true;
+    }
+    options
+        .ignore_type_in_groups
+        .iter()
+        .any(|group| group.contains(&vt1) && group.contains(&vt2))
+}
+
+fn value_type(value: &Value) -> ValueType {
+    match value {
+        Value::Number(_) => ValueType::Number,
+        Value::String(_) => ValueType::String,
+        Value::Bool(_) => ValueType::Bool,
+        Value::Null => ValueType::Null,
+        Value::Array(_) => ValueType::Array,
+        Value::Object(_) => ValueType::Object,
+    }
 }
 
 fn type_name(value: &Value) -> &'static str {
@@ -522,6 +580,20 @@ fn options_from_kwargs(kwargs: Option<&Bound<'_, PyDict>>) -> PyResult<DeepDiffO
                         options = options.math_epsilon(Some(value.extract::<f64>()?));
                     }
                 }
+                key if key == "atol" => {
+                    if value.is_none() {
+                        options = options.atol(None);
+                    } else {
+                        options = options.atol(Some(value.extract::<f64>()?));
+                    }
+                }
+                key if key == "rtol" => {
+                    if value.is_none() {
+                        options = options.rtol(None);
+                    } else {
+                        options = options.rtol(Some(value.extract::<f64>()?));
+                    }
+                }
                 key if key == "include_paths" => {
                     let paths = extract_string_list(&value)?;
                     options = options.include_paths(paths);
@@ -532,6 +604,16 @@ fn options_from_kwargs(kwargs: Option<&Bound<'_, PyDict>>) -> PyResult<DeepDiffO
                 }
                 key if key == "verbose_level" => {
                     options = options.verbose_level(value.extract::<u8>()?);
+                }
+                key if key == "ignore_type_in_groups" => {
+                    let (groups, ignore_numeric, ignore_string) = extract_type_groups(&value)?;
+                    options.ignore_type_in_groups = groups;
+                    if ignore_numeric {
+                        options = options.ignore_numeric_type_changes(true);
+                    }
+                    if ignore_string {
+                        options = options.ignore_string_type_changes(true);
+                    }
                 }
                 _ => {
                     return Err(PyValueError::new_err(format!(
@@ -555,6 +637,170 @@ fn extract_string_list(value: &Bound<'_, PyAny>) -> PyResult<Vec<String>> {
     } else {
         Err(PyTypeError::new_err("Expected a list or tuple of strings"))
     }
+}
+
+#[cfg(feature = "python")]
+fn extract_type_groups(value: &Bound<'_, PyAny>) -> PyResult<(Vec<Vec<ValueType>>, bool, bool)> {
+    let groups_any = if let Ok(list) = value.downcast::<PyList>() {
+        list.iter().collect::<Vec<_>>()
+    } else if let Ok(tuple) = value.downcast::<PyTuple>() {
+        tuple.iter().collect::<Vec<_>>()
+    } else {
+        return Err(PyTypeError::new_err(
+            "Expected a list or tuple of type groups",
+        ));
+    };
+
+    let py = value.py();
+    let type_int = py.get_type_bound::<pyo3::types::PyLong>();
+    let type_float = py.get_type_bound::<pyo3::types::PyFloat>();
+    let type_bool = py.get_type_bound::<pyo3::types::PyBool>();
+    let type_str = py.get_type_bound::<pyo3::types::PyString>();
+    let type_bytes = py.get_type_bound::<PyBytes>();
+    let type_none = py.get_type_bound::<pyo3::types::PyNone>();
+    let type_list = py.get_type_bound::<PyList>();
+    let type_tuple = py.get_type_bound::<PyTuple>();
+    let type_dict = py.get_type_bound::<PyDict>();
+    let numbers_mod = py.import_bound("numbers")?;
+    let number_obj = numbers_mod.getattr("Number")?;
+    let number_type = number_obj.downcast::<PyType>()?;
+    let numpy_mod = py.import_bound("numpy").ok();
+
+    let mut groups: Vec<Vec<ValueType>> = Vec::new();
+    let mut ignore_numeric = false;
+    let mut ignore_string = false;
+
+    for group_any in groups_any {
+        let items = if let Ok(list) = group_any.downcast::<PyList>() {
+            list.iter().collect::<Vec<_>>()
+        } else if let Ok(tuple) = group_any.downcast::<PyTuple>() {
+            tuple.iter().collect::<Vec<_>>()
+        } else {
+            return Err(PyTypeError::new_err(
+                "Each ignore_type_in_groups entry must be a list or tuple of types",
+            ));
+        };
+
+        let mut group: Vec<ValueType> = Vec::new();
+        let mut has_int = false;
+        let mut has_float = false;
+        let mut has_str = false;
+        let mut has_bytes = false;
+
+        for item in items {
+            let ty = match item.downcast::<PyType>() {
+                Ok(ty) => ty,
+                Err(_) => {
+                    let module: Option<String> = item
+                        .getattr("__module__")
+                        .ok()
+                        .and_then(|m| m.extract().ok());
+                    let name: Option<String> =
+                        item.getattr("__name__").ok().and_then(|n| n.extract().ok());
+                    if module.as_deref().unwrap_or("").starts_with("numpy")
+                        && name.as_deref().unwrap_or("") == "array"
+                    {
+                        group.push(ValueType::Array);
+                        continue;
+                    }
+                    return Err(PyTypeError::new_err(
+                        "Unsupported type in ignore_type_in_groups",
+                    ));
+                }
+            };
+            let vt = if ty.is(&type_int) {
+                has_int = true;
+                ValueType::Number
+            } else if ty.is(&type_float) {
+                has_float = true;
+                ValueType::Number
+            } else if ty.is(&type_bool) {
+                ValueType::Bool
+            } else if ty.is(&type_str) {
+                has_str = true;
+                ValueType::String
+            } else if ty.is(&type_bytes) {
+                has_bytes = true;
+                ValueType::String
+            } else if ty.is(&type_none) {
+                ValueType::Null
+            } else if ty.is(&type_list) || ty.is(&type_tuple) {
+                ValueType::Array
+            } else if ty.is(&type_dict) {
+                ValueType::Object
+            } else if {
+                let module: String = ty.getattr("__module__")?.extract()?;
+                module.starts_with("numpy")
+            } {
+                let is_ndarray = if let Some(np) = numpy_mod.as_ref() {
+                    if let Ok(ndarray) = np.getattr("ndarray") {
+                        if let Ok(ndarray) = ndarray.downcast::<PyType>() {
+                            ty.is_subclass(ndarray).unwrap_or(false)
+                        } else {
+                            false
+                        }
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                };
+                let name = ty.name()?.to_lowercase();
+                if is_ndarray || name.contains("ndarray") {
+                    ValueType::Array
+                } else if name.contains("bool") {
+                    ValueType::Bool
+                } else {
+                    if name.contains("float") || name.contains("floating") {
+                        has_float = true;
+                    } else if name.contains("int")
+                        || name.contains("integer")
+                        || name.contains("uint")
+                        || name.contains("number")
+                    {
+                        has_int = true;
+                    } else {
+                        has_float = true;
+                    }
+                    ValueType::Number
+                }
+            } else if ty.is_subclass(number_type)? {
+                let module: String = ty.getattr("__module__")?.extract()?;
+                let name = ty.name()?.to_lowercase();
+                if module == "numpy" {
+                    if name.contains("float") || name.contains("floating") {
+                        has_float = true;
+                    } else if name.contains("int")
+                        || name.contains("integer")
+                        || name.contains("uint")
+                    {
+                        has_int = true;
+                    } else {
+                        has_float = true;
+                    }
+                } else {
+                    has_float = true;
+                }
+                ValueType::Number
+            } else {
+                return Err(PyTypeError::new_err(
+                    "Unsupported type in ignore_type_in_groups",
+                ));
+            };
+            group.push(vt);
+        }
+
+        if has_int && has_float {
+            ignore_numeric = true;
+        }
+        if has_str && has_bytes {
+            ignore_string = true;
+        }
+
+        groups.push(group);
+    }
+
+    Ok((groups, ignore_numeric, ignore_string))
 }
 
 #[cfg(feature = "python")]
@@ -601,6 +847,16 @@ fn value_from_py(value: &Bound<'_, PyAny>) -> PyResult<Value> {
             map.insert(key, value_from_py(&v)?);
         }
         return Ok(Value::Object(map));
+    }
+    if value
+        .get_type()
+        .getattr("__module__")?
+        .extract::<String>()?
+        .starts_with("numpy")
+    {
+        if let Ok(tolist) = value.call_method0("tolist") {
+            return value_from_py(&tolist);
+        }
     }
 
     Err(PyTypeError::new_err("Unsupported Python type for DeepDiff"))

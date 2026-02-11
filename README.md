@@ -65,16 +65,19 @@ assert not diff # will raise AssertionError
 
 All options are passed as keyword arguments to `DeepDiff(...)`.
 
-- `ignore_order: bool`
-- `ignore_numeric_type_changes: bool`
-- `ignore_string_type_changes: bool`
-- `significant_digits: int | None`
-- `math_epsilon: float | None`
-- `include_paths: list[str]`
-- `exclude_paths: list[str]`
-- `verbose_level: int` (0 or 1)
-
-`verbose_level=0` returns paths only for `values_changed`.
+| Option | Type | Behavior |
+| --- | --- | --- |
+| `ignore_order` | `bool` | Treat arrays as multisets (order-insensitive). |
+| `ignore_numeric_type_changes` | `bool` | Treat `int`/`float` type changes as value changes. |
+| `ignore_string_type_changes` | `bool` | Treat `str`/`bytes` type changes as value changes. |
+| `ignore_type_in_groups` | `list[tuple[type, ...]]` | Treat types in each group as compatible (type changes become value changes). Example: `[(int, float), (bool, str)]`. |
+| `significant_digits` | `int \| None` | Compare numbers rounded to N significant digits. |
+| `math_epsilon` | `float \| None` | Absolute tolerance for numeric comparison (alias for `atol`). |
+| `atol` | `float \| None` | Absolute tolerance for numeric comparison. |
+| `rtol` | `float \| None` | Relative tolerance for numeric comparison. Uses `abs(a-b) <= max(atol, rtol * max(abs(a), abs(b)))`. |
+| `include_paths` | `list[str]` | Only diff paths that match these prefixes. |
+| `exclude_paths` | `list[str]` | Skip any paths that match these prefixes. |
+| `verbose_level` | `int` (0 or 1) | `0` returns paths only for `values_changed`. |
 
 ## Usage (Rust)
 
