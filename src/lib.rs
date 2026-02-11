@@ -121,7 +121,11 @@ struct PyDeepDiff {
 impl PyDeepDiff {
     #[new]
     #[pyo3(signature = (t1, t2, **kwargs))]
-    fn new(t1: &Bound<'_, PyAny>, t2: &Bound<'_, PyAny>, kwargs: Option<&Bound<'_, PyDict>>) -> PyResult<Self> {
+    fn new(
+        t1: &Bound<'_, PyAny>,
+        t2: &Bound<'_, PyAny>,
+        kwargs: Option<&Bound<'_, PyDict>>,
+    ) -> PyResult<Self> {
         let t1_val = value_from_py(t1)?;
         let t2_val = value_from_py(t2)?;
         let options = options_from_kwargs(kwargs)?;
@@ -176,9 +180,15 @@ impl DiffAccumulator {
             if verbose_level == 0 {
                 let mut paths: Vec<String> = self.values_changed.keys().cloned().collect();
                 paths.sort();
-                result.insert("values_changed".to_string(), Value::Array(paths.into_iter().map(Value::String).collect()));
+                result.insert(
+                    "values_changed".to_string(),
+                    Value::Array(paths.into_iter().map(Value::String).collect()),
+                );
             } else {
-                result.insert("values_changed".to_string(), map_to_value(self.values_changed));
+                result.insert(
+                    "values_changed".to_string(),
+                    map_to_value(self.values_changed),
+                );
             }
         }
         if !self.dictionary_item_added.is_empty() {
@@ -198,10 +208,16 @@ impl DiffAccumulator {
             );
         }
         if !self.iterable_item_added.is_empty() {
-            result.insert("iterable_item_added".to_string(), map_to_value(self.iterable_item_added));
+            result.insert(
+                "iterable_item_added".to_string(),
+                map_to_value(self.iterable_item_added),
+            );
         }
         if !self.iterable_item_removed.is_empty() {
-            result.insert("iterable_item_removed".to_string(), map_to_value(self.iterable_item_removed));
+            result.insert(
+                "iterable_item_removed".to_string(),
+                map_to_value(self.iterable_item_removed),
+            );
         }
         if !self.type_changes.is_empty() {
             result.insert("type_changes".to_string(), map_to_value(self.type_changes));
@@ -215,7 +231,13 @@ fn map_to_value(map: BTreeMap<String, Value>) -> Value {
     Value::Object(map.into_iter().collect())
 }
 
-fn diff_values(t1: &Value, t2: &Value, path: &str, options: &DeepDiffOptions, acc: &mut DiffAccumulator) {
+fn diff_values(
+    t1: &Value,
+    t2: &Value,
+    path: &str,
+    options: &DeepDiffOptions,
+    acc: &mut DiffAccumulator,
+) {
     if !path_allowed(path, options) {
         return;
     }
@@ -252,22 +274,23 @@ fn diff_values(t1: &Value, t2: &Value, path: &str, options: &DeepDiffOptions, ac
                     diff_values(&list1[idx], &list2[idx], &child_path, options, acc);
                 }
                 if list1.len() > list2.len() {
-                    for idx in min_len..list1.len() {
+                    for (idx, item) in list1.iter().enumerate().skip(min_len) {
                         let child_path = format!("{}[{}]", path, idx);
-                        acc.iterable_item_removed.insert(child_path, list1[idx].clone());
+                        acc.iterable_item_removed.insert(child_path, item.clone());
                     }
                 }
                 if list2.len() > list1.len() {
-                    for idx in min_len..list2.len() {
+                    for (idx, item) in list2.iter().enumerate().skip(min_len) {
                         let child_path = format!("{}[{}]", path, idx);
-                        acc.iterable_item_added.insert(child_path, list2[idx].clone());
+                        acc.iterable_item_added.insert(child_path, item.clone());
                     }
                 }
             }
         }
         _ => {
             if types_compatible(t1, t2) {
-                acc.values_changed.insert(path.to_string(), json_obj(old_new_value(t1, t2)));
+                acc.values_changed
+                    .insert(path.to_string(), json_obj(old_new_value(t1, t2)));
             } else {
                 acc.type_changes
                     .insert(path.to_string(), json_obj(type_change_value(t1, t2)));
@@ -276,7 +299,13 @@ fn diff_values(t1: &Value, t2: &Value, path: &str, options: &DeepDiffOptions, ac
     }
 }
 
-fn diff_arrays_ignore_order(list1: &[Value], list2: &[Value], path: &str, _options: &DeepDiffOptions, acc: &mut DiffAccumulator) {
+fn diff_arrays_ignore_order(
+    list1: &[Value],
+    list2: &[Value],
+    path: &str,
+    _options: &DeepDiffOptions,
+    acc: &mut DiffAccumulator,
+) {
     let mut map1: HashMap<String, Vec<usize>> = HashMap::new();
     let mut map2: HashMap<String, Vec<usize>> = HashMap::new();
 
@@ -294,7 +323,8 @@ fn diff_arrays_ignore_order(list1: &[Value], list2: &[Value], path: &str, _optio
         if indices1.len() > indices2.len() {
             for idx in indices1[indices2.len()..].iter().copied() {
                 let child_path = format!("{}[{}]", path, idx);
-                acc.iterable_item_removed.insert(child_path, list1[idx].clone());
+                acc.iterable_item_removed
+                    .insert(child_path, list1[idx].clone());
             }
         }
     }
@@ -304,13 +334,10 @@ fn diff_arrays_ignore_order(list1: &[Value], list2: &[Value], path: &str, _optio
         if indices2.len() > indices1.len() {
             for idx in indices2[indices1.len()..].iter().copied() {
                 let child_path = format!("{}[{}]", path, idx);
-                acc.iterable_item_added.insert(child_path, list2[idx].clone());
+                acc.iterable_item_added
+                    .insert(child_path, list2[idx].clone());
             }
         }
-    }
-
-    if !acc.iterable_item_added.is_empty() || !acc.iterable_item_removed.is_empty() {
-        return;
     }
 }
 
@@ -340,7 +367,11 @@ fn values_equal(t1: &Value, t2: &Value, options: &DeepDiffOptions) -> bool {
     }
 }
 
-fn numbers_equal(n1: &serde_json::Number, n2: &serde_json::Number, options: &DeepDiffOptions) -> bool {
+fn numbers_equal(
+    n1: &serde_json::Number,
+    n2: &serde_json::Number,
+    options: &DeepDiffOptions,
+) -> bool {
     let f1 = n1.as_f64();
     let f2 = n2.as_f64();
 
@@ -374,13 +405,13 @@ fn round_significant(value: f64, digits: u32) -> f64 {
 }
 
 fn types_compatible(t1: &Value, t2: &Value) -> bool {
-    match (t1, t2) {
-        (Value::Number(_), Value::Number(_)) => true,
-        (Value::String(_), Value::String(_)) => true,
-        (Value::Bool(_), Value::Bool(_)) => true,
-        (Value::Null, Value::Null) => true,
-        _ => false,
-    }
+    matches!(
+        (t1, t2),
+        (Value::Number(_), Value::Number(_))
+            | (Value::String(_), Value::String(_))
+            | (Value::Bool(_), Value::Bool(_))
+            | (Value::Null, Value::Null)
+    )
 }
 
 fn type_name(value: &Value) -> &'static str {
@@ -414,7 +445,12 @@ fn old_new_value(t1: &Value, t2: &Value) -> Vec<(&'static str, Value)> {
 }
 
 fn json_obj(entries: Vec<(&'static str, Value)>) -> Value {
-    Value::Object(entries.into_iter().map(|(k, v)| (k.to_string(), v)).collect())
+    Value::Object(
+        entries
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v))
+            .collect(),
+    )
 }
 
 fn canonical_string(value: &Value) -> String {

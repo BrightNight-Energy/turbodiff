@@ -42,7 +42,9 @@ jobs:
         run: cargo test
 
       - name: Build Python extension
-        run: maturin develop --features python
+        run: |
+          source .venv/bin/activate
+          maturin develop --features python
 
       - name: Python lint (ruff)
         run: |
@@ -60,7 +62,7 @@ jobs:
           pytest
 
   release:
-    if: github.ref == 'refs/heads/main'
+    if: github.event.ref == 'refs/heads/main'
     needs: test
     runs-on: ubuntu-latest
     permissions:
