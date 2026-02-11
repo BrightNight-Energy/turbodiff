@@ -1,0 +1,30 @@
+[project]
+name = "turbodiff"
+version = "0.1.0"
+description = "Rust-powered DeepDiff core"
+readme = "README.md"
+requires-python = ">=3.8"
+
+[build-system]
+requires = ["maturin>=1.4,<2.0"]
+build-backend = "maturin"
+
+[project.urls]
+Repository = "https://github.com/seperman/deepdiff"
+
+[tool.maturin]
+features = ["python"]
+
+[dependency-groups]
+dev = [
+    "maturin>=1.11.5",
+    "pytest>=8.3.5",
+    "ruff>=0.15.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["turbodiff"]
+
+[tool.semantic_release]
+version_toml = ["pyproject.toml:project.version"]
+commit_message = "chore(release): v{version} [skip ci]"

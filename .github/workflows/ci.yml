@@ -1,0 +1,126 @@
+name: CI
+
+on:
+  push:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.event.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Install Python tooling
+        run: |
+          uv sync
+          source .venv/bin/activate
+
+      - name: Rust format check
+        run: cargo fmt -- --check
+
+      - name: Rust lint (clippy)
+        run: cargo clippy -- -D warnings
+
+      - name: Rust tests
+        run: cargo test
+
+      - name: Build Python extension
+        run: maturin develop --features python
+
+      - name: Python lint (ruff)
+        run: |
+          source .venv/bin/activate
+          ruff check .
+
+      - name: Python format check (ruff)
+        run: |
+          source .venv/bin/activate
+          ruff format --check .
+
+      - name: Python tests
+        run: |
+          source .venv/bin/activate
+          pytest
+
+  release:
+    if: github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history so semantic-release can resolve commits
+          token: ${{ secrets.CICD_RELEASE_GITHUB_TOKEN }}
+
+      - uses: 1password/load-secrets-action/configure@v2
+        with:
+          service-account-token: ${{ secrets.SW_ADMIN_1PASSWORD_SERVICE_ACCOUNT_TOKEN }}
+
+      - name: Load secrets from 1password
+        id: load-secrets
+        uses: 1password/load-secrets-action@v2
+        env:
+          PYPI_API_TOKEN: op://SW Engineering Admin/Pypi token/credential
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.12"
+
+      - name: Release (python-semantic-release)
+        id: release
+        uses: python-semantic-release/python-semantic-release@v10.5.3
+        with:
+          changelog: true
+          commit: true
+          push: true
+          tag: true
+          vcs_release: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Rust
+        if: steps.release.outputs.released == 'true'
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Install build tooling
+        if: steps.release.outputs.released == 'true'
+        run: |
+          uv sync
+          source .venv/bin/activate
+
+      - name: Build distributions
+        if: steps.release.outputs.released == 'true'
+        run: |
+          source .venv/bin/activate
+          maturin sdist --out dist
+          maturin build --release --features python --out dist
+
+      - name: Publish to PyPI
+        if: steps.release.outputs.released == 'true'
+        uses: pypa/gh-action-pypi-publish@v1.13.0
+        with:
+          packages-dir: dist
+          password: ${{ env.PYPI_API_TOKEN }}
