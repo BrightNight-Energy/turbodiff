@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.1.1 (2026-02-12)
+
+### Bug Fixes
+
+- Add wheels to package ([#6](https://github.com/BrightNight-Energy/turbodiff/pull/6),
+  [`c1d70c3`](https://github.com/BrightNight-Energy/turbodiff/commit/c1d70c33060ab1bfd843276df4b39ef5fa33d51b))
+
+
 ## v1.1.0 (2026-02-11)
 
 ### Chores
