@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.1.2 (2026-02-12)
+
+### Bug Fixes
+
+- Remove uv from release step ([#7](https://github.com/BrightNight-Energy/turbodiff/pull/7),
+  [`7a7c832`](https://github.com/BrightNight-Energy/turbodiff/commit/7a7c832c408b95fcd9fb66494d82707a1e208f34))
+
+
 ## v1.1.1 (2026-02-12)
 
 ### Bug Fixes
