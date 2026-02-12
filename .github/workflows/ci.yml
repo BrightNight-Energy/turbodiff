@@ -105,7 +105,7 @@ jobs:
 
   build_wheels:
     # if: github.event.ref == 'refs/heads/main' && needs.release.outputs.released == 'true'
-    needs: release
+    # needs: release
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
