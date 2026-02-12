@@ -104,8 +104,8 @@ jobs:
           github_token: ${{ secrets.CICD_RELEASE_GITHUB_TOKEN }}
 
   build_wheels:
-    # if: github.event.ref == 'refs/heads/main' && needs.release.outputs.released == 'true'
-    # needs: release
+    if: github.event.ref == 'refs/heads/main' && needs.release.outputs.released == 'true'
+    needs: release
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -118,14 +118,14 @@ jobs:
           fetch-depth: 0
 
       - name: Build wheels (maturin)
-        # if: needs.release.outputs.released == 'true'
+        if: needs.release.outputs.released == 'true'
         uses: PyO3/maturin-action@v1
         with:
           command: build
           args: --release --features python --out dist
 
       - name: Build sdist
-        if: matrix.os == 'ubuntu-latest'
+        if: needs.release.outputs.released == 'true' && matrix.os == 'ubuntu-latest'
         uses: PyO3/maturin-action@v1
         with:
           command: sdist
