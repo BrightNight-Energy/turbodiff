@@ -118,14 +118,14 @@ jobs:
           fetch-depth: 0
 
       - name: Build wheels (maturin)
-        if: needs.release.outputs.released == 'true'
+        # if: needs.release.outputs.released == 'true'
         uses: PyO3/maturin-action@v1
         with:
           command: build
           args: --release --features python --out dist
 
       - name: Build sdist
-        if: needs.release.outputs.released == 'true' && matrix.os == 'ubuntu-latest'
+        if: matrix.os == 'ubuntu-latest'
         uses: PyO3/maturin-action@v1
         with:
           command: sdist
