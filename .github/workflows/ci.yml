@@ -65,6 +65,8 @@ jobs:
     if: github.event.ref == 'refs/heads/main'
     needs: test
     runs-on: ubuntu-latest
+    outputs:
+      released: ${{ steps.release.outputs.released }}
     permissions:
       contents: write
       id-token: write
@@ -101,28 +103,68 @@ jobs:
           vcs_release: true
           github_token: ${{ secrets.CICD_RELEASE_GITHUB_TOKEN }}
 
-      - name: Set up Rust
-        if: steps.release.outputs.released == 'true'
-        uses: dtolnay/rust-toolchain@stable
+  build_wheels:
+    # if: github.event.ref == 'refs/heads/main' && needs.release.outputs.released == 'true'
+    needs: release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          components: clippy, rustfmt
+          fetch-depth: 0
 
-      - name: Install build tooling
-        if: steps.release.outputs.released == 'true'
-        run: |
-          uv sync
-          source .venv/bin/activate
+      - name: Build wheels (maturin)
+        if: needs.release.outputs.released == 'true'
+        uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          args: --release --features python --out dist
 
-      - name: Build distributions
-        if: steps.release.outputs.released == 'true'
+      - name: Build sdist
+        if: needs.release.outputs.released == 'true' && matrix.os == 'ubuntu-latest'
+        uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: --out dist
+
+      - name: Upload artifacts
+        if: needs.release.outputs.released == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.os }}
+          path: dist
+
+  publish:
+    if: github.event.ref == 'refs/heads/main' && needs.release.outputs.released == 'true'
+    needs: [build_wheels, release]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: 1password/load-secrets-action/configure@v2
+        with:
+          service-account-token: ${{ secrets.SW_ADMIN_1PASSWORD_SERVICE_ACCOUNT_TOKEN }}
+
+      - name: Load secrets from 1password
+        id: load-secrets
+        uses: 1password/load-secrets-action@v2
+        env:
+          PYPI_API_TOKEN: op://SW Engineering Admin/Pypi token/credential
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Flatten dist
         run: |
-          source .venv/bin/activate
-          maturin sdist --out dist
-          maturin build --release --features python --out dist
+          mkdir -p dist-flat
+          find dist -type f \( -name "*.whl" -o -name "*.tar.gz" \) -print0 | xargs -0 -I {} cp {} dist-flat
 
       - name: Publish to PyPI
-        if: steps.release.outputs.released == 'true'
         uses: pypa/gh-action-pypi-publish@v1.13.0
         with:
-          packages-dir: dist
+          packages-dir: dist-flat
           password: ${{ env.PYPI_API_TOKEN }}
