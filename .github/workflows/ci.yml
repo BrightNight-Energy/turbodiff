@@ -77,16 +77,6 @@ jobs:
           fetch-depth: 0 # Fetch all history so semantic-release can resolve commits
           token: ${{ secrets.CICD_RELEASE_GITHUB_TOKEN }}
 
-      - uses: 1password/load-secrets-action/configure@v2
-        with:
-          service-account-token: ${{ secrets.SW_ADMIN_1PASSWORD_SERVICE_ACCOUNT_TOKEN }}
-
-      - name: Load secrets from 1password
-        id: load-secrets
-        uses: 1password/load-secrets-action@v2
-        env:
-          PYPI_API_TOKEN: op://SW Engineering Admin/Pypi token/credential
-
       - name: Set up uv
         uses: astral-sh/setup-uv@v7
         with:
@@ -142,17 +132,11 @@ jobs:
     if: github.event.ref == 'refs/heads/main' && needs.release.outputs.released == 'true'
     needs: [build_wheels, release]
     runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      # IMPORTANT: this permission is mandatory for Trusted Publishing
+      id-token: write
     steps:
-      - uses: 1password/load-secrets-action/configure@v2
-        with:
-          service-account-token: ${{ secrets.SW_ADMIN_1PASSWORD_SERVICE_ACCOUNT_TOKEN }}
-
-      - name: Load secrets from 1password
-        id: load-secrets
-        uses: 1password/load-secrets-action@v2
-        env:
-          PYPI_API_TOKEN: op://SW Engineering Admin/Pypi token/credential
-
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -167,4 +151,3 @@ jobs:
         uses: pypa/gh-action-pypi-publish@v1.13.0
         with:
           packages-dir: dist-flat
-          password: ${{ env.PYPI_API_TOKEN }}
