@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## v1.2.0 (2026-02-13)
+
+### Features
+
+- Broaden DeepDiff python input support
+  ([#8](https://github.com/BrightNight-Energy/turbodiff/pull/8),
+  [`62e27ae`](https://github.com/BrightNight-Energy/turbodiff/commit/62e27ae51a35477739bb73276f76ba79fa86109f))
+
+
 ## v1.1.2 (2026-02-12)
 
 ### Bug Fixes
