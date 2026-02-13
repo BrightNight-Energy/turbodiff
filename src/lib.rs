@@ -7,7 +7,7 @@ use pyo3::exceptions::{PyTypeError, PyValueError};
 #[cfg(feature = "python")]
 use pyo3::prelude::*;
 #[cfg(feature = "python")]
-use pyo3::types::{PyAny, PyBytes, PyDict, PyList, PyTuple, PyType};
+use pyo3::types::{PyAny, PyBytes, PyDict, PyFrozenSet, PyList, PySet, PyTuple, PyType};
 
 #[derive(Clone, Debug)]
 pub struct DeepDiffOptions {
@@ -580,6 +580,13 @@ fn options_from_kwargs(kwargs: Option<&Bound<'_, PyDict>>) -> PyResult<DeepDiffO
                         options = options.math_epsilon(Some(value.extract::<f64>()?));
                     }
                 }
+                key if key == "math_absilon" => {
+                    if value.is_none() {
+                        options = options.math_epsilon(None);
+                    } else {
+                        options = options.math_epsilon(Some(value.extract::<f64>()?));
+                    }
+                }
                 key if key == "atol" => {
                     if value.is_none() {
                         options = options.atol(None);
@@ -634,8 +641,14 @@ fn extract_string_list(value: &Bound<'_, PyAny>) -> PyResult<Vec<String>> {
         list.iter().map(|item| item.extract::<String>()).collect()
     } else if let Ok(tuple) = value.downcast::<PyTuple>() {
         tuple.iter().map(|item| item.extract::<String>()).collect()
+    } else if let Ok(set) = value.downcast::<PySet>() {
+        set.iter().map(|item| item.extract::<String>()).collect()
+    } else if let Ok(set) = value.downcast::<PyFrozenSet>() {
+        set.iter().map(|item| item.extract::<String>()).collect()
     } else {
-        Err(PyTypeError::new_err("Expected a list or tuple of strings"))
+        Err(PyTypeError::new_err(
+            "Expected a list, tuple, or set of strings",
+        ))
     }
 }
 
@@ -843,10 +856,51 @@ fn value_from_py(value: &Bound<'_, PyAny>) -> PyResult<Value> {
     if let Ok(dict) = value.downcast::<PyDict>() {
         let mut map = serde_json::Map::with_capacity(dict.len());
         for (k, v) in dict.iter() {
-            let key: String = k.extract()?;
+            let key: String = match k.extract::<String>() {
+                Ok(val) => val,
+                Err(_) => k
+                    .str()
+                    .and_then(|s| s.extract::<String>())
+                    .map_err(|_| PyTypeError::new_err("Unsupported dict key type for DeepDiff"))?,
+            };
             map.insert(key, value_from_py(&v)?);
         }
         return Ok(Value::Object(map));
+    }
+    if value
+        .get_type()
+        .getattr("__module__")?
+        .extract::<String>()?
+        .starts_with("pandas")
+    {
+        if let Ok(to_dict) = value.getattr("to_dict") {
+            let py = value.py();
+            let kwargs = PyDict::new_bound(py);
+            kwargs.set_item("orient", "list")?;
+            if let Ok(res) = to_dict.call((), Some(&kwargs)) {
+                return value_from_py(&res);
+            }
+            let res = to_dict.call0()?;
+            return value_from_py(&res);
+        }
+        if let Ok(to_numpy) = value.getattr("to_numpy") {
+            let res = to_numpy.call0()?;
+            return value_from_py(&res);
+        }
+    }
+    if value.hasattr("model_dump")? {
+        let py = value.py();
+        let kwargs = PyDict::new_bound(py);
+        kwargs.set_item("mode", "json")?;
+        if let Ok(dumped) = value.call_method("model_dump", (), Some(&kwargs)) {
+            return value_from_py(&dumped);
+        }
+        let dumped = value.call_method0("model_dump")?;
+        return value_from_py(&dumped);
+    }
+    if value.hasattr("dict")? {
+        let dumped = value.call_method0("dict")?;
+        return value_from_py(&dumped);
     }
     if value
         .get_type()
