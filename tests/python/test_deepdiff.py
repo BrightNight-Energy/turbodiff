@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import pytest
 
 from turbodiff import DeepDiff
@@ -71,10 +72,60 @@ def test_python_include_paths():
     }
 
 
+def test_python_include_paths_set():
+    t1 = {"foo": {"bar": {"fruit": "apple"}}, "ingredients": ["bread"]}
+    t2 = {"foo": {"bar": {"fruit": "peach"}}, "ingredients": ["bread"]}
+    diff = DeepDiff(t1, t2, include_paths={"root['foo']"})
+    assert diff.to_dict() == {
+        "values_changed": {
+            "root['foo']['bar']['fruit']": {"old_value": "apple", "new_value": "peach"}
+        }
+    }
+
+
 def test_python_exclude_paths():
     t1 = {"keep": {"x": 1}, "skip": {"y": 1}}
     t2 = {"keep": {"x": 1}, "skip": {"y": 2}}
     diff = DeepDiff(t1, t2, exclude_paths=["root['skip']"])
+    assert diff.to_dict() == {}
+
+
+def test_python_exclude_paths_set():
+    t1 = {"keep": {"x": 1}, "skip": {"y": 1}}
+    t2 = {"keep": {"x": 1}, "skip": {"y": 2}}
+    diff = DeepDiff(t1, t2, exclude_paths={"root['skip']"})
+    assert diff.to_dict() == {}
+
+
+class DummyModel:
+    def __init__(self, value: int):
+        self.value = value
+
+    def model_dump(self, **kwargs):
+        return {"value": self.value}
+
+
+def test_python_model_dump_object():
+    diff = DeepDiff(DummyModel(1), DummyModel(1))
+    assert diff.to_dict() == {}
+
+
+def test_python_dict_int_keys():
+    diff = DeepDiff({1: 2, 3: 4}, {1: 2, 3: 4})
+    assert diff.to_dict() == {}
+
+
+def test_python_pandas_dataframe():
+    df1 = pd.DataFrame({"a": [1.0, 2.0], "b": [3.0, 4.0]})
+    df2 = pd.DataFrame({"a": [1.0, 2.0], "b": [3.0, 4.0]})
+    diff = DeepDiff(df1, df2)
+    assert diff.to_dict() == {}
+
+
+def test_python_pandas_series():
+    s1 = pd.Series([1.0, 2.0, 3.0])
+    s2 = pd.Series([1.0, 2.0, 3.0])
+    diff = DeepDiff(s1, s2)
     assert diff.to_dict() == {}
 
 
