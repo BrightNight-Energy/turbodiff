@@ -67,6 +67,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       released: ${{ steps.release.outputs.released }}
+      tag: ${{ steps.release.outputs.tag }}
+      version: ${{ steps.release.outputs.version }}
     permissions:
       contents: write
       id-token: write
@@ -101,6 +103,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: refs/tags/${{ needs.release.outputs.tag }}
 
       - name: Build wheels (maturin)
         if: needs.release.outputs.released == 'true'
