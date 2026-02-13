@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v1.2.1 (2026-02-13)
+
+### Bug Fixes
+
+- **ci**: Build from release tag ([#9](https://github.com/BrightNight-Energy/turbodiff/pull/9),
+  [`eaedf29`](https://github.com/BrightNight-Energy/turbodiff/commit/eaedf296b149a917033f626db4b88f0e232fd6a6))
+
+
 ## v1.2.0 (2026-02-13)
 
 ### Features
