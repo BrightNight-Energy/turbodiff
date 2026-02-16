@@ -37,6 +37,9 @@ version_toml = [
 commit_message = "chore(release): v{version} [skip ci]"
 build_command = """
     python -m pip install uv
+    curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal --default-toolchain stable
+    . "$HOME/.cargo/env"
     uv lock
+    cargo update -w --offline
     git add uv.lock Cargo.lock
 """
