@@ -81,6 +81,11 @@ impl DeepDiffOptions {
         self.verbose_level = value;
         self
     }
+
+    pub fn ignore_type_in_groups(mut self, groups: Vec<Vec<ValueType>>) -> Self {
+        self.ignore_type_in_groups = groups;
+        self
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -105,7 +110,7 @@ impl Default for PrettyOptions {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub(crate) enum ValueType {
+pub enum ValueType {
     Number,
     String,
     Bool,

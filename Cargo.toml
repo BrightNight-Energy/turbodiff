@@ -1,7 +1,10 @@
 [package]
 name = "turbodiff"
-version = "0.1.0"
+version = "1.3.0"
 edition = "2021"
+description = "Rust-powered DeepDiff core"
+readme = "README.md"
+repository = "https://github.com/BrightNight-Energy/turbodiff"
 
 [lib]
 name = "turbodiff"

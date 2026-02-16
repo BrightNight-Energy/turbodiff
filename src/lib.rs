@@ -5,7 +5,7 @@ mod pretty;
 #[cfg(feature = "python")]
 mod python;
 
-pub use options::{DeepDiffOptions, PrettyOptions};
+pub use options::{DeepDiffOptions, PrettyOptions, ValueType};
 
 use serde_json::Value;
 
