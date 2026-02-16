@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## v1.3.2 (2026-02-16)
+
+### Bug Fixes
+
+- Remove --locked from crates publish command
+  ([#12](https://github.com/BrightNight-Energy/turbodiff/pull/12),
+  [`0c7b720`](https://github.com/BrightNight-Energy/turbodiff/commit/0c7b7207f6a261f6df1df4e68d9345fb9b96d133))
+
+
 ## v1.3.1 (2026-02-16)
 
 ### Bug Fixes
