@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## v1.3.6 (2026-02-16)
+
+### Bug Fixes
+
+- Fix build command to allow cargo update network access
+  ([#16](https://github.com/BrightNight-Energy/turbodiff/pull/16),
+  [`fc03e3e`](https://github.com/BrightNight-Energy/turbodiff/commit/fc03e3e25e062959b2c53d47407a773dd7f66f0e))
+
+
 ## v1.3.5 (2026-02-16)
 
 ### Bug Fixes
