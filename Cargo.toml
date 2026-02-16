@@ -2,6 +2,7 @@
 name = "turbodiff"
 version = "1.3.2"
 edition = "2021"
+license = "MIT OR Apache-2.0"
 description = "Rust-powered DeepDiff core"
 readme = "README.md"
 repository = "https://github.com/BrightNight-Energy/turbodiff"
