@@ -5,7 +5,7 @@
 ![PyPI - Version](https://img.shields.io/pypi/v/turbodiff)
 ![GitHub CI](https://github.com/BrightNight-Energy/turbodiff/actions/workflows/ci.yml/badge.svg)
 
-##### Zero dependencies ✨ Rust-based 🦀 Super fast 🚀
+#### Zero dependencies ✨ Rust-based 🦀 Super fast 🚀
 
 Turbodiff is a super fast diffing library built from the ground up in Rust for
 speed and consistency. It focuses on core diffing behavior and exposes both a
@@ -48,6 +48,14 @@ For local development builds, the Python package is built with `maturin`:
 maturin develop --features python
 ```
 
+## Installation (Rust)
+
+Install from crates.io with cargo:
+
+```bash
+cargo add turbodiff
+```
+
 ## Usage (Python)
 
 ```python
@@ -55,22 +63,87 @@ from turbodiff import DeepDiff
 
 diff = DeepDiff({"a": 1}, {"a": 2})
 print(diff.to_dict())
-# {'values_changed': {"root['a']": {'old_value': 1, 'new_value': 2}}}
+> {'values_changed': {"root['a']": {'old_value': 1, 'new_value': 2}}}
 
 # Truthiness follows DeepDiff semantics
 assert not diff # will raise AssertionError
 ```
 
-## Pretty Output (Python)
+## Usage (Rust)
+
+```rust
+use serde_json::json;
+use turbodiff::{DeepDiff, DeepDiffOptions};
+
+let t1 = json!({"a": 1});
+let t2 = json!({"a": 2});
+let diff = DeepDiff::new(t1, t2);
+println!("{}", diff.to_value());
+
+let options = DeepDiffOptions::default().ignore_order(true);
+let diff = DeepDiff::with_options(json!([1, 2]), json!([2, 1]), options);
+assert_eq!(diff.to_value(), json!({}));
+```
+
+## Pretty Output
 
 ```python
 from turbodiff import DeepDiff
+from copy import deepcopy
 
-diff = DeepDiff({"a": {"b": 1}}, {"a": {"b": 2}})
+d = {
+    "a": 2,
+    "b": 3,
+    "c": 4,
+    "d": {
+        "x": {
+            "y": 7,
+            "z": 8,
+        },
+    },
+    "g": [1, 2, 3],
+    "i": None,
+    "k": {"a", "b"},
+}
+d2 = deepcopy(d)
+d2["a"] = 3
+d2["d"]["x"]["x"] = None
+d2["i"] = 2
+d2["k"] = {"a", "c"}
+diff = DeepDiff(d, d2)
 print(diff.pretty())
+> a
+> │   - 2
+> │   + 3
+> ...
+> d
+> ╰── x
+>     ╰── x
+>         + None
+> ...
+> i
+> │   - (null) None
+> │   + (int) 2
+> k
+> ╰── [1]
+>     - 'b'
+>     + 'c'
 
-# Optional controls
-print(diff.pretty(no_color=True, compact=True, max_depth=5, context=0, path_header=False))
+# Compact output
+print(diff.pretty(compact=True))
+> a
+> │   - 2
+> │   + 3
+> ...
+> d.x.x
+> │   + None
+> ...
+> i
+> │   - (null) None
+> │   + (int) 2
+> k[1]
+> │   - 'b'
+> │   + 'c'
 ```
 
 ## Supported keyword options (Python)
@@ -90,22 +163,6 @@ All options are passed as keyword arguments to `DeepDiff(...)`.
 | `include_paths` | `list[str]` | Only diff paths that match these prefixes. |
 | `exclude_paths` | `list[str]` | Skip any paths that match these prefixes. |
 | `verbose_level` | `int` (0 or 1) | `0` returns paths only for `values_changed`. |
-
-## Usage (Rust)
-
-```rust
-use serde_json::json;
-use turbodiff::{DeepDiff, DeepDiffOptions};
-
-let t1 = json!({"a": 1});
-let t2 = json!({"a": 2});
-let diff = DeepDiff::new(t1, t2);
-println!("{}", diff.to_value());
-
-let options = DeepDiffOptions::default().ignore_order(true);
-let diff = DeepDiff::with_options(json!([1, 2]), json!([2, 1]), options);
-assert_eq!(diff.to_value(), json!({}));
-```
 
 ## Development
 
