@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## v1.3.0 (2026-02-16)
+
+### Features
+
+- Add pretty formatter and set support for DeepDiff
+  ([#10](https://github.com/BrightNight-Energy/turbodiff/pull/10),
+  [`9d8e2f8`](https://github.com/BrightNight-Energy/turbodiff/commit/9d8e2f804e9fa776097d17083c56ca404787df56))
+
+
 ## v1.2.1 (2026-02-13)
 
 ### Bug Fixes
