@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## v1.3.5 (2026-02-16)
+
+### Bug Fixes
+
+- Fix build command to use apt-get to install rust, instead of curl
+  ([#15](https://github.com/BrightNight-Energy/turbodiff/pull/15),
+  [`024f863`](https://github.com/BrightNight-Energy/turbodiff/commit/024f863df6d8e8c60d01bf9864f74c8910e97edf))
+
+
 ## v1.3.4 (2026-02-16)
 
 ### Bug Fixes
