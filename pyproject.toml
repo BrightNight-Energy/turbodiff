@@ -35,3 +35,8 @@ version_toml = [
     "Cargo.toml:package.version",
 ]
 commit_message = "chore(release): v{version} [skip ci]"
+build_command = """
+    python -m pip install uv
+    uv lock
+    git add uv.lock Cargo.lock
+"""
