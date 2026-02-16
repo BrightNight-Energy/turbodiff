@@ -30,5 +30,8 @@ dev = [
 packages = ["turbodiff"]
 
 [tool.semantic_release]
-version_toml = ["pyproject.toml:project.version"]
+version_toml = [
+    "pyproject.toml:project.version",
+    "Cargo.toml:package.version",
+]
 commit_message = "chore(release): v{version} [skip ci]"
