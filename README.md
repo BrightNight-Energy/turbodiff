@@ -61,6 +61,18 @@ print(diff.to_dict())
 assert not diff # will raise AssertionError
 ```
 
+## Pretty Output (Python)
+
+```python
+from turbodiff import DeepDiff
+
+diff = DeepDiff({"a": {"b": 1}}, {"a": {"b": 2}})
+print(diff.pretty())
+
+# Optional controls
+print(diff.pretty(no_color=True, compact=True, max_depth=5, context=0, path_header=False))
+```
+
 ## Supported keyword options (Python)
 
 All options are passed as keyword arguments to `DeepDiff(...)`.

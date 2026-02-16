@@ -36,6 +36,26 @@ def test_python_ignore_order():
     assert diff.to_dict() == {}
 
 
+def test_python_set_equal():
+    diff = DeepDiff({1, 2, 3}, {3, 2, 1})
+    assert diff.to_dict() == {}
+
+
+def test_python_set_detects_changes():
+    diff = DeepDiff({1, 2}, {2, 3})
+    assert diff.to_dict() == {
+        "values_changed": {
+            "root[0]": {"old_value": 1, "new_value": 2},
+            "root[1]": {"old_value": 2, "new_value": 3},
+        }
+    }
+
+
+def test_python_frozenset_equal():
+    diff = DeepDiff(frozenset({"a", "b"}), frozenset({"b", "a"}))
+    assert diff.to_dict() == {}
+
+
 def test_python_ignore_numeric_type_changes():
     diff = DeepDiff(10, 10.0, ignore_numeric_type_changes=True)
     assert diff.to_dict() == {}
@@ -168,3 +188,36 @@ def test_empty_diff_is_falsy():
 
 def test_non_empty_diff_is_truthy():
     assert DeepDiff({"a": 5}, {"a": 6})
+
+
+def test_pretty_simple_change(pretty_print):
+    diff = DeepDiff({"a": {"b": 1}}, {"a": {"b": 2}})
+    output = diff.pretty(no_color=True)
+    if pretty_print:
+        print(output)
+    assert output == "a\n╰── b\n    - 1\n    + 2"
+
+
+def test_pretty_list_change(pretty_print):
+    diff = DeepDiff(["a", "b"], ["c", "d"])
+    output = diff.pretty(no_color=True)
+    if pretty_print:
+        print(output)
+    assert output == "[0]\n│   - 'a'\n│   + 'c'\n[1]\n│   - 'b'\n│   + 'd'"
+
+
+def test_pretty_path_header(pretty_print):
+    diff = DeepDiff({"a": {"b": 1}}, {"a": {"b": 2}})
+    output = diff.pretty(no_color=True, path_header=True)
+    if pretty_print:
+        print(output)
+    assert output == "a.b\n│   - 1\n│   + 2"
+
+
+def test_pretty_continuation_with_ellipsis(pretty_print):
+    d = {"a": dict.fromkeys("abcdefghijkl", 1)}
+    d2 = {"a": d["a"] | {"b": 2, "j": 2}}
+    output = DeepDiff(d, d2).pretty(no_color=True)
+    if pretty_print:
+        print(output)
+    assert output == "a\n├── b\n│   - 1\n│   + 2\n├── ...\n╰── j\n    - 1\n    + 2"
