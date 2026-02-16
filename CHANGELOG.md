@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## v1.3.4 (2026-02-16)
+
+### Bug Fixes
+
+- Fix build command to include adding rust
+  ([#14](https://github.com/BrightNight-Energy/turbodiff/pull/14),
+  [`8219fed`](https://github.com/BrightNight-Energy/turbodiff/commit/8219fed845f55d5db38988486ad018c8974f394f))
+
+
 ## v1.3.3 (2026-02-16)
 
 ### Bug Fixes

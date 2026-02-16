@@ -1,6 +1,6 @@
 [project]
 name = "turbodiff"
-version = "1.3.3"
+version = "1.3.4"
 description = "Rust-powered DeepDiff core"
 readme = "README.md"
 requires-python = ">=3.9"
