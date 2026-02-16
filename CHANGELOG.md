@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## v1.3.1 (2026-02-16)
+
+### Bug Fixes
+
+- Add crates publishing to CI release workflow
+  ([#11](https://github.com/BrightNight-Energy/turbodiff/pull/11),
+  [`be5334e`](https://github.com/BrightNight-Energy/turbodiff/commit/be5334eb138048bd9edf9fab36f7e9ee1b039dd7))
+
+
 ## v1.3.0 (2026-02-16)
 
 ### Features
