@@ -36,10 +36,11 @@ version_toml = [
 ]
 commit_message = "chore(release): v{version} [skip ci]"
 build_command = """
+    set -eu
     python -m pip install uv
     apt-get update
     apt-get install -y --no-install-recommends cargo
     uv lock
-    cargo update -w --offline
+    cargo update -w
     git add uv.lock Cargo.lock
 """
