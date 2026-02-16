@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## v1.3.3 (2026-02-16)
+
+### Bug Fixes
+
+- Add build command to semantic release
+  ([#13](https://github.com/BrightNight-Energy/turbodiff/pull/13),
+  [`f29f221`](https://github.com/BrightNight-Energy/turbodiff/commit/f29f22106de95ce10a4c66078b94cfa7cbb4a769))
+
+
 ## v1.3.2 (2026-02-16)
 
 ### Bug Fixes
